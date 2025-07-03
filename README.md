@@ -166,35 +166,90 @@ export default function Page() {
 
 ## 🧠 3. Memoization
 
-**Memoization** là kỹ thuật **tránh tính toán lại** dữ liệu đã được tính toán trước đó, giúp **giảm re-calculate** và **tránh render dư thừa**.
+**Memoization** là kỹ thuật giúp **lưu lại kết quả tính toán tốn kém**, để không cần tính lại mỗi khi component render lại — đặc biệt hữu ích khi xử lý dữ liệu phức tạp, hoặc truyền props xuống component con.
 
-### 🌠 Vue – ❌ Không memo:
+> 🎯 Mục tiêu: **Giữ nguyên reference** (đối với object, array, function) hoặc **tránh gọi lại hàm nặng** nếu dependency không đổi.
+
+---
+
+### 🌠 Vue 3 (Composition API)
+
+#### ❌ KHÔNG memo – Trực tiếp gọi hàm:
 
 ```ts
 const result = getExpensiveData();
 ```
 
-### ✅ Vue – Dùng `computed`:
+- Hàm `getExpensiveData()` sẽ được gọi mỗi lần render → gây tính toán dư thừa.
+
+#### ✅ Dùng `computed()` – Memo giá trị tính toán:
 
 ```ts
+import { computed } from "vue";
+
 const result = computed(() => getExpensiveData());
 ```
 
----
+- `computed` chỉ tính lại khi dependency trong hàm thay đổi.
+- Rất hữu ích khi dữ liệu phụ thuộc vào `ref`, `reactive`, v.v.
 
-### 🔹 React / Next.js – ✅ Dùng `useMemo` / `useCallback`:
+#### ✅ Dùng `const` cho dữ liệu tĩnh (không reactive):
 
 ```ts
+const result = expensiveStaticData;
+```
+
+- Nếu dữ liệu không cần reactive, bạn có thể dùng `const` để giữ nguyên reference.
+
+---
+
+### 🔹 React / Next.js
+
+#### ✅ Dùng `useMemo()` – Memo object/array hoặc kết quả tính toán:
+
+```tsx
+import { useMemo } from "react";
+
 const result = useMemo(() => getExpensiveData(), [dependency]);
+```
+
+- `getExpensiveData()` chỉ chạy lại khi `dependency` thay đổi.
+- Rất cần thiết nếu `result` là object/array dùng trong props của component con.
+
+#### ✅ Dùng `useCallback()` – Memo callback function:
+
+```tsx
+import { useCallback } from "react";
 
 const handleClick = useCallback(() => {
   doSomething();
 }, []);
 ```
 
-- 📈 Giảm re-calculate, tránh render dư thừa.
+- Tránh tạo hàm mới mỗi lần render → giữ reference ổn định → component con không bị render lại.
 
 ---
+
+### 📌 Khi nào nên dùng Memoization?
+
+| Trường hợp sử dụng                           | Có nên memo?    |
+| -------------------------------------------- | --------------- |
+| Hàm tính toán nặng hoặc xử lý dữ liệu lớn    | ✅              |
+| Truyền object/array xuống component con      | ✅              |
+| Truyền callback function xuống component con | ✅              |
+| Dữ liệu tĩnh, không reactive                 | ❌ Dùng `const` |
+| Dữ liệu đơn giản, thay đổi thường xuyên      | ❌ Không cần    |
+
+---
+
+### 🧠 Tổng kết
+
+| Framework        | Memo giá trị | Memo function         |
+| ---------------- | ------------ | --------------------- |
+| **Vue 3**        | `computed()` | Tránh inline function |
+| **React / Next** | `useMemo()`  | `useCallback()`       |
+
+> ⚠️ Lạm dụng memoization có thể làm code phức tạp hơn. Chỉ dùng khi có lý do hiệu năng rõ ràng (component chậm, re-render nhiều, logic nặng...).
 
 ## ♻️ 4. Tránh Render Dư Thừa
 
