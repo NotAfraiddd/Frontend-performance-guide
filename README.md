@@ -4,7 +4,7 @@ Tối ưu hiệu năng cho ứng dụng **Vue (TypeScript)** và **React / Next.
 
 ---
 
-Dưới đây là kết quả của việc áp dụng các kỹ thuật tối ưu hiệu năng cho ứng dụng của mình sau 1 thời gian lăn lộn khá vất vả trong ở các dự án của công ty.
+Dưới đây là kết quả của việc áp dụng các kỹ thuật tối ưu hiệu năng cho ứng dụng của mình sau 1 thời gian lăn lộn khá vất vả trong các dự án của công ty.
 
 ## 🌟 Mục Tiêu
 
@@ -59,7 +59,7 @@ function App() {
 ```ts
 import dynamic from "next/dynamic";
 
-const About = dynamic(() => import("./pages/About"));
+const About = dynamic(() => import("./pages/About"), { ssr: false });
 
 function App() {
   return <About />;
@@ -68,7 +68,9 @@ function App() {
 
 - 📈 `About` chỉ được tải khi cần → giảm initial load.
 
-> ⚠️ Với Next.js: Các route trong thư mục `pages/` **đã tự động lazy load**, nhưng nếu bạn **import component thủ công**, hãy dùng `dynamic()`.
+> Với Next.js: Các route trong thư mục `pages/` **đã tự động lazy load**, nhưng nếu bạn **import component thủ công**, hãy dùng `dynamic()`.
+
+⚠️ Sử dụng `{ ssr: false }` nếu component không cần server-side rendering.
 
 ---
 
@@ -177,17 +179,17 @@ export default function Page() {
 #### ❌ KHÔNG memo – Trực tiếp gọi hàm:
 
 ```ts
-const result = getExpensiveData();
+const result = getExpensiveData(someRef.value);
 ```
 
-- Hàm `getExpensiveData()` sẽ được gọi mỗi lần render → gây tính toán dư thừa.
+- Hàm `getExpensiveData(someRef.value)` sẽ được gọi mỗi lần render → gây tính toán dư thừa.
 
 #### ✅ Dùng `computed()` – Memo giá trị tính toán:
 
 ```ts
 import { computed } from "vue";
 
-const result = computed(() => getExpensiveData());
+const result = computed(() => getExpensiveData(someRef.value));
 ```
 
 - `computed` chỉ tính lại khi dependency trong hàm thay đổi.
@@ -272,10 +274,11 @@ Hiệu suất frontend không chỉ nằm ở tốc độ tải ban đầu, mà 
 ```ts
 import { ref } from "vue";
 
+const STATIC_OPTIONS = [{ label: "A", value: 1 }];
+
 export default defineComponent({
   setup() {
-    const options = ref([{ label: "A", value: 1 }]);
-    return { options };
+    return { options: STATIC_OPTIONS };
   },
 });
 ```
@@ -363,6 +366,19 @@ const handleClick = useCallback(() => {
 const MyComponent = React.memo(({ data }) => {
   return <div>{data.title}</div>;
 });
+```
+
+Hoặc React.memo với custom compare( props phức tạp)
+
+```ts
+const MyComponent = React.memo(
+  ({ data }) => {
+    return <div>{data.title}</div>;
+  },
+  (prevProps, nextProps) => {
+    return prevProps.data.title === nextProps.data.title;
+  }
+);
 ```
 
 ---
